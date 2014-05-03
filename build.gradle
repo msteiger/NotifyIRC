@@ -1,0 +1,35 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+//group = 'org.group'
+version = '1.0'
+
+// We use both Maven Central and our own Artifactory instance, which contains module builds, extra libs, and so on
+repositories {
+    mavenCentral()
+}
+
+
+dependencies {
+	compile group: 'pircbot', name: 'pircbot', version: '1.5.0'
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.12'
+}
+
+
+task sourceJar(type: Jar) {
+    description = "Create a JAR with all sources"
+    from sourceSets.main.allSource
+    classifier = 'sources'
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    description = "Create a JAR with the JavaDoc for the java sources"
+    from javadoc.destinationDir
+    classifier = 'javadoc'
+}
+
+build.dependsOn sourceJar, javadocJar
+
