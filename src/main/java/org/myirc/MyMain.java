@@ -34,93 +34,117 @@ import java.net.URL;
 import javax.imageio.ImageIO;
 import javax.swing.JOptionPane;
 
-public class MyMain {
-    public static void main(String[] args) {
-        if (!SystemTray.isSupported()) 
-        {
-            throw new UnsupportedOperationException("No system tray!");
-        }
-        
-        final TrayIcon trayIcon = new TrayIcon(loadImage("icons/irc.png"), "MyIRC Bot");
-        trayIcon.setImageAutoSize(true);
+import org.jibble.pircbot.IrcException;
 
-        try {
-            SystemTray.getSystemTray().add(trayIcon);
-        } catch (AWTException e) {
-            showError("Could not add tray icon", e);
-        }
+/**
+ * Main class
+ * @author Martin Steiger
+ */
+public class MyMain
+{
+	/**
+	 * @param args ignored
+	 */
+	public static void main(String[] args)
+	{
+		final TrayIcon trayIcon; 
+		try
+		{
+			if (!SystemTray.isSupported())
+				throw new UnsupportedOperationException("No system tray!");
 
-        final MyBot bot = new MyBot(trayIcon, "msteiger_bot");
+			BufferedImage icon = loadImage("icons/irc.png");
+		
+			trayIcon = new TrayIcon(icon, "MyIRC Bot");
+			trayIcon.setImageAutoSize(true);
 
-        PopupMenu menu = new PopupMenu();
-        
-        final CheckboxMenuItem showJoinParts = new CheckboxMenuItem("Show Joins/Parts", true);
-        showJoinParts.addActionListener(new ActionListener() {
-            
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                bot.showJoinsParts(showJoinParts.getState());
-            }
-        });
-        bot.showJoinsParts(showJoinParts.getState());
-        
-        final CheckboxMenuItem showAllMessages = new CheckboxMenuItem("Show all messages", true);
-        showAllMessages.addActionListener(new ActionListener() {
-            
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                bot.showAllMessages(showAllMessages.getState());
-            }
-        });
-        bot.showAllMessages(showAllMessages.getState());
-        
-        MenuItem quitItem = new MenuItem("Quit");
-        quitItem.addActionListener(new ActionListener() {
-            
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                bot.disconnect();
-                SystemTray.getSystemTray().remove(trayIcon);
-            }
-        });
-        menu.add(showAllMessages);
-        menu.add(showJoinParts);
-        menu.add(new MenuItem("-"));
-        menu.add(quitItem);
-        trayIcon.setPopupMenu(menu);
-        
-        bot.setVerbose(true);
-        try {
-            bot.connect("irc.freenode.net");
-            bot.joinChannel("#terasology");
-        } catch (Exception e) {
-            showError("Could not connect to server", e);
-            SystemTray.getSystemTray().remove(trayIcon);
-        }
-    }
-    
+			SystemTray.getSystemTray().add(trayIcon);
+		}
+		catch (IOException | AWTException e)
+		{
+			showError("Could not initialize tray icon", e);
+			return;
+		}
 
-    private static void showError(String text, Exception e) {
-        StringWriter sw = new StringWriter();
-        e.printStackTrace(new PrintWriter(sw));
-        String msg = text + System.lineSeparator() + sw.toString(); 
-                
-        JOptionPane.showMessageDialog(null, msg, "An error occurred", JOptionPane.ERROR_MESSAGE);
-    }
+		final MyBot bot = new MyBot(trayIcon, "msteiger_bot");
 
+		trayIcon.setPopupMenu(createPopup(bot, trayIcon));
 
-    private static BufferedImage loadImage(String fname) {
-        try {
-            String fullPath = "/" + fname;
-            URL rsc = MyMain.class.getResource(fullPath);
-            if (rsc == null) {
-                throw new FileNotFoundException(fullPath);
-            }
-            return ImageIO.read(rsc);
-        } catch (IOException e) {
-            e.printStackTrace(System.err);
-            return null;
-        }
-    }
-    
+		bot.setVerbose(true);
+		try
+		{
+			bot.connect("irc.freenode.net");
+			bot.joinChannel("#pircbot");
+		}
+		catch (IrcException | IOException e)
+		{
+			showError("Could not connect to server", e);
+			SystemTray.getSystemTray().remove(trayIcon);
+		}
+	}
+
+	private static PopupMenu createPopup(final MyBot bot, final TrayIcon trayIcon)
+	{
+		PopupMenu menu = new PopupMenu();
+
+		final CheckboxMenuItem showJoinParts = new CheckboxMenuItem("Show Joins/Parts", true);
+		showJoinParts.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				bot.showJoinsParts(showJoinParts.getState());
+			}
+		});
+		bot.showJoinsParts(showJoinParts.getState());
+
+		final CheckboxMenuItem showAllMessages = new CheckboxMenuItem("Show all messages", true);
+		showAllMessages.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				bot.showAllMessages(showAllMessages.getState());
+			}
+		});
+		bot.showAllMessages(showAllMessages.getState());
+
+		MenuItem quitItem = new MenuItem("Quit");
+		quitItem.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				bot.disconnect();
+				SystemTray.getSystemTray().remove(trayIcon);
+			}
+		});
+		
+		menu.add(showAllMessages);
+		menu.add(showJoinParts);
+		menu.addSeparator();
+		menu.add(quitItem);
+		return menu;
+	}
+
+	private static void showError(String text, Exception e)
+	{
+		StringWriter sw = new StringWriter();
+		e.printStackTrace(new PrintWriter(sw));
+		String msg = text + System.lineSeparator() + sw.toString();
+
+		JOptionPane.showMessageDialog(null, msg, "An error occurred", JOptionPane.ERROR_MESSAGE);
+	}
+
+	private static BufferedImage loadImage(String fname) throws IOException
+	{
+		String fullPath = "/" + fname;
+		URL rsc = MyMain.class.getResource(fullPath);
+		if (rsc == null)
+		{
+			throw new FileNotFoundException(fullPath);
+		}
+		return ImageIO.read(rsc);
+	}
+
 }
